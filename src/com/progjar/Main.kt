@@ -1,15 +1,14 @@
 package com.progjar
 
-import java.io.BufferedInputStream
-import java.io.BufferedOutputStream
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.*
 import java.net.Socket
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
 
 var url = "localhost"
 
@@ -117,6 +116,65 @@ fun parseHeader(line: String) {
         var value = line.substring(line.indexOf(":") + 1, line.length)
 
         responseHeader.put(key, value)
+    }
+}
+
+fun connectWithSSL() {
+    try {
+        val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+        val socket = factory.createSocket("classroom.its.ac.id", 443) as SSLSocket
+
+        /*
+         * send http request
+         *
+         * Before any application data is sent or received, the
+         * SSL socket will do SSL handshaking first to set up
+         * the security attributes.
+         *
+         * SSL handshaking can be initiated by either flushing data
+         * down the pipe, or by starting the handshaking by hand.
+         *
+         * Handshaking is started manually in this example because
+         * PrintWriter catches all IOExceptions (including
+         * SSLExceptions), sets an internal error flag, and then
+         * returns without rethrowing the exception.
+         *
+         * Unfortunately, this means any error messages are lost,
+         * which caused lots of confusion for others using this
+         * code.  The only way to tell there was an error is to call
+         * PrintWriter.checkError().
+         */socket.startHandshake()
+        val out = PrintWriter(
+            BufferedWriter(
+                OutputStreamWriter(
+                    socket.outputStream
+                )
+            )
+        )
+        out.println("GET /auth/oidc/ HTTP/1.1\r\nHost: classroom.its.ac.id\r\n\r\n")
+        out.println()
+        out.flush()
+
+        /*
+         * Make sure there were no surprises
+         */
+        if (out.checkError()) println(
+            "SSLSocketClient:  java.io.PrintWriter error"
+        )
+
+        /* read response */
+        val `in` = BufferedReader(
+            InputStreamReader(
+                socket.inputStream
+            )
+        )
+        var inputLine: String?
+        while (`in`.readLine().also { inputLine = it } != null) println(inputLine)
+        `in`.close()
+        out.close()
+        socket.close()
+    } catch (e: java.lang.Exception) {
+        e.printStackTrace()
     }
 }
 
