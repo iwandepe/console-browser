@@ -1,8 +1,8 @@
 package com.progjar
 
-import kotlinx.coroutines.handleCoroutineException
 import java.io.*
 import java.net.Socket
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -11,8 +11,10 @@ import java.util.concurrent.TimeoutException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
+
 const val HTTP_VERSION = "HTTP/1.1"
 const val REQUEST_TIMEOUT: Long = 2
+const val DOWNLOAD_PATH = "/home/iwandepe/progjar/week-3/"
 
 var responseHeader = mutableMapOf<String, String>()
 var responseBody: String = ""
@@ -66,8 +68,36 @@ fun startApp() {
             }
         }
 
+        if (responseHeader.get("Status-Code")!!.startsWith("4")) {
+            downloadFile()
+            println("File downloaded")
+            continue
+        }
+
+        println(responseHeader)
         println(responseBody)
         responseBody = ""
+    }
+}
+
+private fun downloadFile() {
+    try {
+        val urlObject = URL(url)
+        val bis = BufferedInputStream(urlObject.openStream())
+        val urlMap = parseUrl(url)
+        val pathTo = DOWNLOAD_PATH + urlMap.get("path")
+        val fis = FileOutputStream(pathTo)
+
+        val buffer = ByteArray(1024)
+        var count = 0
+        while (bis.read(buffer, 0, 1024).also { count = it } != -1) {
+            fis.write(buffer, 0, count)
+        }
+
+        fis.close()
+        bis.close()
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
 
@@ -82,9 +112,7 @@ internal class MakeHttpRequest : Callable<Boolean> {
             var socket: Socket = Socket(host, 80)
 
             var bis = BufferedInputStream(socket.getInputStream())
-            val br = BufferedReader(
-                InputStreamReader(bis, StandardCharsets.UTF_8)
-            )
+            val br = BufferedReader(InputStreamReader(bis, StandardCharsets.UTF_8))
             var bos = BufferedOutputStream(socket.getOutputStream())
 
             bos.write( "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n".toByteArray() )
