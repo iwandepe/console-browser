@@ -1,5 +1,6 @@
 package com.progjar
 
+import kotlinx.coroutines.*
 import java.io.*
 import java.net.Socket
 import java.net.URL
@@ -43,6 +44,9 @@ fun startApp() {
         var input = readLine()
         url = input!!
 
+        // TODO: Validate url input
+        // TODO: if there is no protocol in the url input, give http as default protocol
+
         println("Anda mengakses url $url")
 
         var executor = Executors.newSingleThreadExecutor()
@@ -68,9 +72,26 @@ fun startApp() {
             }
         }
 
-        if (responseHeader.get("Status-Code")!!.startsWith("4")) {
+        /**
+         * Sometimes Http response for file request is correct
+         * the Content-Type is other than text/html. Ex. "image/jpeg"
+         *
+         * But sometimes it returns Content-Type text/html and the Status-Code is 4xx
+         */
+        if (!responseHeader.get("Content-Type")!!.contains("html")) {
+            GlobalScope.launch {
+                downloadFile()
+            }
             downloadFile()
-            println("File downloaded")
+            println("Program is downloading the file in the background")
+            continue
+        }
+
+        if (responseHeader.get("Status-Code")!!.startsWith("4")) {
+            GlobalScope.launch {
+                downloadFile()
+            }
+            println("Program is downloading the file in the background")
             continue
         }
 
@@ -80,7 +101,7 @@ fun startApp() {
     }
 }
 
-private fun downloadFile() {
+fun downloadFile() {
     try {
         val urlObject = URL(url)
         val bis = BufferedInputStream(urlObject.openStream())
