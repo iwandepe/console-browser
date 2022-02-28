@@ -1,6 +1,11 @@
 # IOStreams
  progjar exercise 1
 
+TODO
+- open a web page given an URI and show text
+- show clickable links
+- download file
+
 # example http response's header
 ### 200 OK
 ```
@@ -43,6 +48,21 @@ Content-Type: text/html; charset=UTF-8
 Content-Length: 425
 Connection: keep-alive
 Location: https://classroom.its.ac.id
+Content-Language: en
+```
+same request but using HTTPS
+```
+HTTP/1.1 303 See Other
+Server: nginx/1.10.3
+Date: Mon, 28 Feb 2022 04:23:00 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 731
+Connection: keep-alive
+Set-Cookie: MoodleSession=tksihos3aap0018v6luc37nf5a; path=/; secure
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Location: https://my.its.ac.id/authorize?response_type=code&client_id=759DF3B8-B85E-46B1-9C48-CAF2AB31AE4F&scope=openid%20profile%20email&nonce=N621c4e24e3dda&response_mode=form_post&resource=https%3A%2F%2Fmy.its.ac.id%2Fuserinfo&state=tM4AutZK4KNtiE7&redirect_uri=https%3A%2F%2Fclassroom.its.ac.id%2Fauth%2Foidc%2F
 Content-Language: en
 ```
 
