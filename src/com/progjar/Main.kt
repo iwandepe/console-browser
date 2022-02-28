@@ -11,7 +11,6 @@ import java.util.concurrent.TimeoutException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
-
 const val HTTP_VERSION = "HTTP/1.1"
 const val REQUEST_TIMEOUT: Long = 2
 const val DOWNLOAD_PATH = "/home/iwandepe/progjar/week-3/"
