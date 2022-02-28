@@ -16,6 +16,36 @@ Transfer-Encoding: chunked
 Content-Type: text/html
 ```
 
+### 301 Moved Permanently
+```
+classroom.its.ac.id
+"GET /auth/oidc HTTP/1.1\r\nHost: ${link}\r\n\r\n"
+```
+```
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.10.3
+Date: Mon, 28 Feb 2022 03:39:30 GMT
+Content-Type: text/html; charset=iso-8859-1
+Content-Length: 330
+Connection: keep-alive
+Location: http://classroom.its.ac.id/auth/oidc/
+```
+
+### 303 See Other
+```
+"classroom.its.ac.id", "/auth/oidc/"
+```
+```
+HTTP/1.1 303 See Other
+Server: nginx/1.10.3
+Date: Mon, 28 Feb 2022 04:08:08 GMT
+Content-Type: text/html; charset=UTF-8
+Content-Length: 425
+Connection: keep-alive
+Location: https://classroom.its.ac.id
+Content-Language: en
+```
+
 ### 400 Bad Request
 ```
 hello world\r\n
