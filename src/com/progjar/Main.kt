@@ -11,13 +11,13 @@ import java.util.concurrent.TimeoutException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
-var url = "localhost"
-
 const val HTTP_VERSION = "HTTP/1.1"
 const val REQUEST_TIMEOUT: Long = 2
 
 var responseHeader = mutableMapOf<String, String>()
 var responseBody: String = ""
+
+var url = "localhost"
 
 fun main() {
     startApp()
@@ -143,6 +143,12 @@ internal class MakeHttpsRequest : Callable<Boolean> {
     }
 }
 
+/**
+ * Read http response line by line in BufferedReader
+ * Parsing the response to Http header and body
+ *
+ * The results are saved to global variable
+ */
 fun readBufferedReader(br: BufferedReader) {
     var line = br.readLine()
     var isParseHeader = true
@@ -164,6 +170,10 @@ fun readBufferedReader(br: BufferedReader) {
     }
 }
 
+/**
+ * Parse full url to host and path
+ * The result is returned in Map<String, String>
+ */
 fun parseUrl(urlParam: String): Map<String, String> {
     var urlProp = urlParam
     if (urlProp.startsWith("http://") || urlProp.startsWith("https://")) {
@@ -183,6 +193,10 @@ fun parseUrl(urlParam: String): Map<String, String> {
     return mapOf("host" to host, "path" to path)
 }
 
+/**
+ * Parse per one line header
+ * The result is saved to global variable
+ */
 fun parseHeader(line: String) {
     if (line.startsWith(HTTP_VERSION)) {
         var key = "Status-Code"
