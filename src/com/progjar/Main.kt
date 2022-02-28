@@ -1,5 +1,6 @@
 package com.progjar
 
+import kotlinx.coroutines.handleCoroutineException
 import java.io.*
 import java.net.Socket
 import java.nio.charset.StandardCharsets
@@ -23,7 +24,7 @@ fun main() {
 }
 
 /**
- * This app will create Http Request to the url given by user
+ * This app will create Http Request to the given url by user
  *
  * There is a problem when making the request
  * it takes so long to complete reading the responses
@@ -40,15 +41,29 @@ fun startApp() {
         var input = readLine()
         url = input!!
 
-        println("Anda mengakses host $url")
+        println("Anda mengakses url $url")
 
-        val executor = Executors.newSingleThreadExecutor()
-        val future = executor.submit(MakeHttpRequest())
+        var executor = Executors.newSingleThreadExecutor()
+        var future = executor.submit(MakeHttpRequest())
 
         try {
             future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
         } catch (e: TimeoutException) {
             future.cancel(true)
+        }
+
+        if (responseHeader.get("Status-Code")!!.startsWith("3")){
+            responseBody = ""
+            url = responseHeader.get("Location")!!
+            println("Kamu diarahkan ke $url")
+            executor = Executors.newSingleThreadExecutor()
+            future = executor.submit(MakeHttpsRequest())
+
+            try {
+                future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
+            } catch (e: TimeoutException) {
+                future.cancel(true)
+            }
         }
 
         println(responseBody)
@@ -60,36 +75,22 @@ internal class MakeHttpRequest : Callable<Boolean> {
     @Throws(java.lang.Exception::class)
     override fun call(): Boolean {
         try {
-            var socket: Socket = Socket(url, 80)
+            val urlMap = parseUrl(url)
+            val host = urlMap.get("host")
+            val path = urlMap.get("path")
+
+            var socket: Socket = Socket(host, 80)
 
             var bis = BufferedInputStream(socket.getInputStream())
-            val bf = BufferedReader(
+            val br = BufferedReader(
                 InputStreamReader(bis, StandardCharsets.UTF_8)
             )
             var bos = BufferedOutputStream(socket.getOutputStream())
 
-            bos.write( "GET / $HTTP_VERSION\r\nHost: $url\r\n\r\n".toByteArray() )
+            bos.write( "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n".toByteArray() )
             bos.flush()
 
-            var line = bf.readLine()
-            var isParseHeader = true
-            val startTime = System.currentTimeMillis()
-
-            while (line != null) {
-                if (isParseHeader && line == "") {
-                    isParseHeader = false
-                    line = bf.readLine()
-                    continue
-                }
-
-                if (isParseHeader) {
-                    parseHeader(line)
-                }
-                else {
-                    responseBody = responseBody + "\n" + line
-                }
-                line = bf.readLine()
-            }
+            readBufferedReader(br)
 
             bis.close()
             bos.close()
@@ -104,6 +105,84 @@ internal class MakeHttpRequest : Callable<Boolean> {
     }
 }
 
+internal class MakeHttpsRequest : Callable<Boolean> {
+    @Throws(java.lang.Exception::class)
+    override fun call(): Boolean {
+        try {
+            val urlMap = parseUrl(url)
+            val host = urlMap.get("host")
+            val path = urlMap.get("path")
+
+            val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+            val socket = factory.createSocket(host, 443) as SSLSocket
+
+            socket.startHandshake()
+            val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
+
+            out.println("GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n")
+            out.println()
+            out.flush()
+
+            if (out.checkError()) {
+                println("SSLSocketClient:  java.io.PrintWriter error")
+            }
+
+            val br = BufferedReader(InputStreamReader(socket.inputStream))
+
+            readBufferedReader(br)
+
+            br.close()
+            out.close()
+            socket.close()
+
+            return true
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+            return false
+        }
+    }
+}
+
+fun readBufferedReader(br: BufferedReader) {
+    var line = br.readLine()
+    var isParseHeader = true
+    while (line != null) {
+        if (isParseHeader && line == "") {
+            isParseHeader = false
+            line = br.readLine()
+            continue
+        }
+
+        if (isParseHeader) {
+            parseHeader(line)
+        }
+        else {
+            responseBody = responseBody + "\n" + line
+        }
+
+        line = br.readLine()
+    }
+}
+
+fun parseUrl(urlParam: String): Map<String, String> {
+    var urlProp = urlParam
+    if (urlProp.startsWith("http://") || urlProp.startsWith("https://")) {
+        urlProp = urlProp.substring(urlProp.indexOf("/") + 2, urlProp.length)
+    }
+
+    var host = ""
+    var path = "/"
+    if (urlProp.contains("/")) {
+        host = urlProp.substring(0, urlProp.indexOf("/"))
+        path = urlProp.substring(host.length + 1, urlProp.length)
+    }
+    else {
+        host = urlProp
+    }
+
+    return mapOf("host" to host, "path" to path)
+}
+
 fun parseHeader(line: String) {
     if (line.startsWith(HTTP_VERSION)) {
         var key = "Status-Code"
@@ -113,68 +192,9 @@ fun parseHeader(line: String) {
     }
     else if (line.contains(":")) {
         var key = line.substring(0, line.indexOf(":"))
-        var value = line.substring(line.indexOf(":") + 1, line.length)
+        var value = line.substring(key.length + 2, line.length)
 
         responseHeader.put(key, value)
-    }
-}
-
-fun connectWithSSL() {
-    try {
-        val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
-        val socket = factory.createSocket("classroom.its.ac.id", 443) as SSLSocket
-
-        /*
-         * send http request
-         *
-         * Before any application data is sent or received, the
-         * SSL socket will do SSL handshaking first to set up
-         * the security attributes.
-         *
-         * SSL handshaking can be initiated by either flushing data
-         * down the pipe, or by starting the handshaking by hand.
-         *
-         * Handshaking is started manually in this example because
-         * PrintWriter catches all IOExceptions (including
-         * SSLExceptions), sets an internal error flag, and then
-         * returns without rethrowing the exception.
-         *
-         * Unfortunately, this means any error messages are lost,
-         * which caused lots of confusion for others using this
-         * code.  The only way to tell there was an error is to call
-         * PrintWriter.checkError().
-         */socket.startHandshake()
-        val out = PrintWriter(
-            BufferedWriter(
-                OutputStreamWriter(
-                    socket.outputStream
-                )
-            )
-        )
-        out.println("GET /auth/oidc/ HTTP/1.1\r\nHost: classroom.its.ac.id\r\n\r\n")
-        out.println()
-        out.flush()
-
-        /*
-         * Make sure there were no surprises
-         */
-        if (out.checkError()) println(
-            "SSLSocketClient:  java.io.PrintWriter error"
-        )
-
-        /* read response */
-        val `in` = BufferedReader(
-            InputStreamReader(
-                socket.inputStream
-            )
-        )
-        var inputLine: String?
-        while (`in`.readLine().also { inputLine = it } != null) println(inputLine)
-        `in`.close()
-        out.close()
-        socket.close()
-    } catch (e: java.lang.Exception) {
-        e.printStackTrace()
     }
 }
 
