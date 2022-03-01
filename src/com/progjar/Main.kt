@@ -13,8 +13,9 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 const val HTTP_VERSION = "HTTP/1.1"
-const val REQUEST_TIMEOUT: Long = 2
+const val REQUEST_TIMEOUT: Long = 5
 const val DOWNLOAD_PATH = "/home/iwandepe/progjar/week-3/"
+const val REDIRECTION_LIMIT = 5
 
 var responseHeader = mutableMapOf<String, String>()
 var responseBody: String = ""
@@ -45,34 +46,42 @@ fun startApp() {
     while (true) {
 //        print("Masukkan url: ")
 //        var input = readLine()
-        var input = "classroom.its.ac.id"
+        var input = "https://cahinfor.com"
         url = input!!
 
         // TODO: Validate url input
         // TODO: if there is no protocol in the url input, give http as default protocol
 
-        println("Anda mengakses url $url")
+        print("Anda mengakses url $url")
 
-        var executor = Executors.newSingleThreadExecutor()
-        var future = executor.submit(MakeHttpRequest())
+        // try to connect
+        executeThread()
 
-        try {
-            future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
-        } catch (e: TimeoutException) {
-            future.cancel(true)
+        if( responseHeader.containsKey("Status-Code") ) {
+            println(" (${ responseHeader.get("Status-Code") })")
+        } else {
+            println("Sorry, we can't even get a RESPONSE HEADER")
         }
 
-        if (responseHeader.get("Status-Code")!!.startsWith("3")){
+        /* handle redirectionS */
+        var it = 0
+        println( responseHeader )
+        while( responseHeader.containsKey("Status-Code") && responseHeader.get("Status-Code")!!.startsWith("3") ){
             responseBody = ""
-            url = responseHeader.get("Location")!!
-            println("Kamu diarahkan ke $url")
-            executor = Executors.newSingleThreadExecutor()
-            future = executor.submit(MakeHttpsRequest())
+            if ( responseHeader.containsKey("Location") )
+                url = responseHeader.get("Location")!!
+            if ( responseHeader.containsKey("location") )
+                url = responseHeader.get("location")!!
+            print("Kamu diarahkan ke $url ")
 
-            try {
-                future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
-            } catch (e: TimeoutException) {
-                future.cancel(true)
+            // try to connect
+            executeThread()
+            println("(${ responseHeader.get("Status-Code") })")
+
+            it++
+            if (it >= REDIRECTION_LIMIT) {
+                println( "Kamu terlalu sering dilempar :(" )
+                break
             }
         }
 
@@ -82,7 +91,9 @@ fun startApp() {
          *
          * But sometimes it returns Content-Type text/html and the Status-Code is 4xx
          */
-        if (!responseHeader.get("Content-Type")!!.contains("html")) {
+        /*
+        if ( responseHeader.containsKey("Content-Type") && !responseHeader.get("Content-Type")!!.contains("html") ||
+            responseHeader.containsKey("content-type") && !responseHeader.get("content-type")!!.contains("html")) {
             GlobalScope.launch {
                 downloadFile()
             }
@@ -91,6 +102,7 @@ fun startApp() {
             continue
         }
 
+
         if (responseHeader.get("Status-Code")!!.startsWith("4")) {
             GlobalScope.launch {
                 downloadFile()
@@ -98,9 +110,9 @@ fun startApp() {
             println("Program is downloading the file in the background")
             continue
         }
+        */
 
-//        println(responseHeader)
-        println( responseHeader["Status-Code"] )
+
         if ( responseBody.length != 0 ){
             getWebTitle()
             getLink()
@@ -110,6 +122,28 @@ fun startApp() {
         break
     }
     return
+}
+
+fun executeThread() {
+    if( url.startsWith("https", true) ) {
+        val executor = Executors.newSingleThreadExecutor()
+        val future = executor.submit(MakeHttpsRequest())
+
+        try {
+            future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
+        } catch (e: TimeoutException) {
+            future.cancel(true)
+        }
+    } else {
+        val executor = Executors.newSingleThreadExecutor()
+        val future = executor.submit(MakeHttpRequest())
+
+        try {
+            future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
+        } catch (e: TimeoutException) {
+            future.cancel(true)
+        }
+    }
 }
 
 fun downloadFile() {
@@ -139,7 +173,7 @@ internal class MakeHttpRequest : Callable<Boolean> {
         try {
             val urlMap = parseUrl(url)
             val host = urlMap.get("host")
-            val path = urlMap.get("path")
+            var path = urlMap.get("path")
 
             var socket: Socket = Socket(host, 80)
 
@@ -147,6 +181,7 @@ internal class MakeHttpRequest : Callable<Boolean> {
             val br = BufferedReader(InputStreamReader(bis, StandardCharsets.UTF_8))
             var bos = BufferedOutputStream(socket.getOutputStream())
 
+            if (path.equals("\\")) path = ""
             bos.write( "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n".toByteArray() )
             bos.flush()
 
@@ -171,6 +206,51 @@ internal class MakeHttpsRequest : Callable<Boolean> {
         try {
             val urlMap = parseUrl(url)
             val host = urlMap.get("host")
+            var path = urlMap.get("path")
+
+            val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+            val socket = factory.createSocket(host, 443) as SSLSocket
+
+            socket.startHandshake()
+            val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
+
+            println( path )
+            var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
+//            if (path.equals("/") || path.equals("")) {
+//                path = ""
+//                request = "GET $HTTP_VERSION\r\nHost: $host\r\n\r\n"
+//            }
+            println( request )
+            out.println( request )
+            out.println()
+            out.flush()
+
+            if (out.checkError()) {
+                println("SSLSocketClient:  java.io.PrintWriter error")
+            }
+
+            val br = BufferedReader(InputStreamReader(socket.inputStream))
+
+            readBufferedReader(br)
+
+            br.close()
+            out.close()
+            socket.close()
+
+            return true
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+            return false
+        }
+    }
+}
+
+internal class MakeHttpsPostRequest : Callable<Boolean> {
+    @Throws(java.lang.Exception::class)
+    override fun call(): Boolean {
+        try {
+            val urlMap = parseUrl(url)
+            val host = urlMap.get("host")
             val path = urlMap.get("path")
 
             val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
@@ -179,7 +259,7 @@ internal class MakeHttpsRequest : Callable<Boolean> {
             socket.startHandshake()
             val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
 
-            out.println("GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n")
+            out.println("POST $path $HTTP_VERSION\r\nHost: $host\r\n\r\nemail=05111940000053&password=password\r\n\r\n")
             out.println()
             out.flush()
 
@@ -225,7 +305,7 @@ fun readBufferedReader(br: BufferedReader) {
         else {
             responseBody = responseBody + "\n" + line
         }
-        
+//        println( line )
         line = br.readLine()
     }
 }
@@ -342,7 +422,7 @@ fun handleText(startIndex: Int, endIndex: Int): String {
                 it1++
             }
             /* this break is, if u shouldn't include a raw text inside the anchor tag, such icon or <i>*/
-            break
+//            break
         }
         it++
     }
