@@ -13,8 +13,9 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 const val HTTP_VERSION = "HTTP/1.1"
-const val REQUEST_TIMEOUT: Long = 5
-const val DOWNLOAD_PATH = "/home/iwandepe/progjar/week-3/"
+const val HTTP_VERSION_1 = "HTTP/1.0"
+const val REQUEST_TIMEOUT: Long = 2
+const val DOWNLOAD_PATH = "/home/iwandepe/Downloads"
 const val REDIRECTION_LIMIT = 5
 
 var responseHeader = mutableMapOf<String, String>()
@@ -41,49 +42,48 @@ fun main() {
  * This is weird solution. Because if user has poor connection, and need more than 2 seconds to complete the request
  * The user will not get the complete content
  */
-// /profile/4/
+
 fun startApp() {
     while (true) {
-//        print("Masukkan url: ")
-//        var input = readLine()
-        var input = "https://cahinfor.com"
+        print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
+        var input = readLine()
+
         url = input!!
 
-        // TODO: Validate url input
-        // TODO: if there is no protocol in the url input, give http as default protocol
+        if (!url.startsWith("http")) {
+            url = "http://" + url
+        }
 
-        print("Anda mengakses url $url")
+        println(TEXT_GREEN + "You're accessing $url" + TEXT_RESET)
 
         // try to connect
         executeThread()
 
-        if( responseHeader.containsKey("Status-Code") ) {
-            println(" (${ responseHeader.get("Status-Code") })")
-        } else {
-            println("Sorry, we can't even get a RESPONSE HEADER")
-        }
+        checkStatusCode()
 
         /* handle redirectionS */
         var it = 0
-        println( responseHeader )
         while( responseHeader.containsKey("Status-Code") && responseHeader.get("Status-Code")!!.startsWith("3") ){
             responseBody = ""
             if ( responseHeader.containsKey("Location") )
                 url = responseHeader.get("Location")!!
             if ( responseHeader.containsKey("location") )
                 url = responseHeader.get("location")!!
-            print("Kamu diarahkan ke $url ")
+            println(TEXT_GREEN + "You're redirected to $url " + TEXT_RESET)
 
             // try to connect
             executeThread()
-            println("(${ responseHeader.get("Status-Code") })")
+
+            checkStatusCode()
 
             it++
             if (it >= REDIRECTION_LIMIT) {
-                println( "Kamu terlalu sering dilempar :(" )
+                println( "You're redirected too many times :(" )
                 break
             }
         }
+
+        // println(responseHeader)
 
         /**
          * Sometimes Http response for file request is correct
@@ -91,37 +91,35 @@ fun startApp() {
          *
          * But sometimes it returns Content-Type text/html and the Status-Code is 4xx
          */
-        /*
         if ( responseHeader.containsKey("Content-Type") && !responseHeader.get("Content-Type")!!.contains("html") ||
             responseHeader.containsKey("content-type") && !responseHeader.get("content-type")!!.contains("html")) {
             GlobalScope.launch {
                 downloadFile()
             }
-            downloadFile()
-            println("Program is downloading the file in the background")
+            println(TEXT_BLUE + "Program is downloading the file in the background" + TEXT_RESET)
+
+            println()
+            println("=======================================================")
             continue
         }
-
-
-        if (responseHeader.get("Status-Code")!!.startsWith("4")) {
-            GlobalScope.launch {
-                downloadFile()
-            }
-            println("Program is downloading the file in the background")
-            continue
-        }
-        */
-
 
         if ( responseBody.length != 0 ){
             getWebTitle()
             getLink()
         }
-//        println(responseBody)
+
+        println()
+        println("=======================================================")
         responseBody = ""
-        break
     }
-    return
+}
+
+fun checkStatusCode() {
+    if( responseHeader.containsKey("Status-Code") ) {
+        println(TEXT_YELLOW + "Status Code = " + responseHeader.get("Status-Code") + TEXT_RESET)
+    } else {
+        println(TEXT_RED + "Sorry, we can't even get a RESPONSE HEADER. Check again your url!" + TEXT_RESET)
+    }
 }
 
 fun executeThread() {
@@ -151,7 +149,8 @@ fun downloadFile() {
         val urlObject = URL(url)
         val bis = BufferedInputStream(urlObject.openStream())
         val urlMap = parseUrl(url)
-        val pathTo = DOWNLOAD_PATH + urlMap.get("path")
+        val path = urlMap.get("path")
+        val pathTo = DOWNLOAD_PATH + path!!.substring(path.lastIndexOf("/") + 1)
         val fis = FileOutputStream(pathTo)
 
         val buffer = ByteArray(1024)
@@ -163,7 +162,7 @@ fun downloadFile() {
         fis.close()
         bis.close()
     } catch (e: Exception) {
-        e.printStackTrace()
+//        println(TEXT_RED + e.message + TEXT_RESET)
     }
 }
 
@@ -182,7 +181,11 @@ internal class MakeHttpRequest : Callable<Boolean> {
             var bos = BufferedOutputStream(socket.getOutputStream())
 
             if (path.equals("\\")) path = ""
-            bos.write( "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n".toByteArray() )
+
+            var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
+//            println(TEXT_YELLOW + "Full request = " + request + TEXT_RESET)
+
+            bos.write( request.toByteArray() )
             bos.flush()
 
             readBufferedReader(br)
@@ -193,7 +196,7 @@ internal class MakeHttpRequest : Callable<Boolean> {
 
             return true
         } catch (e: Exception) {
-            e.printStackTrace()
+            // e.printStackTrace()
 
             return false
         }
@@ -214,13 +217,9 @@ internal class MakeHttpsRequest : Callable<Boolean> {
             socket.startHandshake()
             val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
 
-            println( path )
             var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
-//            if (path.equals("/") || path.equals("")) {
-//                path = ""
-//                request = "GET $HTTP_VERSION\r\nHost: $host\r\n\r\n"
-//            }
-            println( request )
+//            println(TEXT_YELLOW + "Full request = " + request + TEXT_RESET)
+
             out.println( request )
             out.println()
             out.flush()
@@ -239,7 +238,7 @@ internal class MakeHttpsRequest : Callable<Boolean> {
 
             return true
         } catch (e: java.lang.Exception) {
-            e.printStackTrace()
+            // e.printStackTrace()
             return false
         }
     }
@@ -324,7 +323,7 @@ fun parseUrl(urlParam: String): Map<String, String> {
     var path = "/"
     if (urlProp.contains("/")) {
         host = urlProp.substring(0, urlProp.indexOf("/"))
-        path = urlProp.substring(host.length + 1, urlProp.length)
+        path = urlProp.substring(host.length, urlProp.length)
     }
     else {
         host = urlProp
@@ -338,9 +337,9 @@ fun parseUrl(urlParam: String): Map<String, String> {
  * The result is saved to global variable
  */
 fun parseHeader(line: String) {
-    if (line.startsWith(HTTP_VERSION)) {
+    if (line.startsWith(HTTP_VERSION) || line.startsWith(HTTP_VERSION_1)) {
         var key = "Status-Code"
-        var value = line.substring(HTTP_VERSION.length + 1, line.length)
+        var value = line.substring(line.indexOf(" ") + 1, line.length)
 
         responseHeader.put(key, value)
     }
@@ -475,15 +474,15 @@ fun handleHref(startIndex: Int, endIndex: Int): String {
 //}
 
 /** Code snippets for colorfull print to console **/
-//const val TEXT_RESET = "\u001B[0m"
-//const val TEXT_BLACK = "\u001B[30m"
-//const val TEXT_RED = "\u001B[31m"
-//const val TEXT_GREEN = "\u001B[32m"
-//const val TEXT_YELLOW = "\u001B[33m"
-//const val TEXT_BLUE = "\u001B[34m"
-//const val TEXT_PURPLE = "\u001B[35m"
-//const val TEXT_CYAN = "\u001B[36m"
-//const val TEXT_WHITE = "\u001B[37m"
+const val TEXT_RESET = "\u001B[0m"
+const val TEXT_BLACK = "\u001B[30m"
+const val TEXT_RED = "\u001B[31m"
+const val TEXT_GREEN = "\u001B[32m"
+const val TEXT_YELLOW = "\u001B[33m"
+const val TEXT_BLUE = "\u001B[34m"
+const val TEXT_PURPLE = "\u001B[35m"
+const val TEXT_CYAN = "\u001B[36m"
+const val TEXT_WHITE = "\u001B[37m"
 //
 //println("Hello, World!")
 //println("<a href=\"www.google.com\">Google</a>")
