@@ -19,6 +19,9 @@ const val DOWNLOAD_PATH = "/home/iwandepe/progjar/week-3/"
 var responseHeader = mutableMapOf<String, String>()
 var responseBody: String = ""
 
+/* web body variables*/
+var webTitle: String = ""
+
 var url = "localhost"
 
 fun main() {
@@ -37,10 +40,12 @@ fun main() {
  * This is weird solution. Because if user has poor connection, and need more than 2 seconds to complete the request
  * The user will not get the complete content
  */
+// /profile/4/
 fun startApp() {
     while (true) {
-        print("Masukkan url: ")
-        var input = readLine()
+//        print("Masukkan url: ")
+//        var input = readLine()
+        var input = "classroom.its.ac.id"
         url = input!!
 
         // TODO: Validate url input
@@ -94,10 +99,17 @@ fun startApp() {
             continue
         }
 
-        println(responseHeader)
-        println(responseBody)
+//        println(responseHeader)
+        println( responseHeader["Status-Code"] )
+        if ( responseBody.length != 0 ){
+            getWebTitle()
+            getLink()
+        }
+//        println(responseBody)
         responseBody = ""
+        break
     }
+    return
 }
 
 fun downloadFile() {
@@ -213,7 +225,7 @@ fun readBufferedReader(br: BufferedReader) {
         else {
             responseBody = responseBody + "\n" + line
         }
-
+        
         line = br.readLine()
     }
 }
@@ -260,7 +272,105 @@ fun parseHeader(line: String) {
     }
 }
 
+fun getWebTitle() {
+    var it = 0
+    var webTitleStartIndex : Int = -1
+    var webTitleEndIndex : Int = -1
+    while( it < responseBody.length && webTitle == "" ) {
+        // <title>{web_title}</title>
+        if( responseBody.substring(it, it + 7).equals("<title>", true) ) {
+            webTitleStartIndex = it + 7
+        }
+        if( responseBody.substring(it, it + 8).equals("</title>", true) ) {
+            webTitleEndIndex = it
+        }
+        if ( webTitleStartIndex != -1 && webTitleEndIndex != -1 ) {
+            webTitle = responseBody.substring( webTitleStartIndex, webTitleEndIndex )
+        }
+        it++
+    }
+    println( webTitle )
+}
 
+fun getLink() {
+    var it = 0
+    var startIndex = -1
+    var endIndex = -1
+    println("clickable links:")
+    while( it < responseBody.length ) {
+        // <a href="">{web_title}</a>
+        if( (it < responseBody.length - 2) && responseBody.substring(it, it + 2).equals("<a", true) ) {
+            startIndex = it
+            var it1 = it
+            while ( it1 < responseBody.length ) {
+                if ( responseBody.substring(it1, it1 + 4).equals("</a>", true) ) {
+                    endIndex = it1 + 4
+                    break
+                }
+                it1++
+            }
+            if (startIndex != -1 && endIndex != -1) {
+                if ( !handleHref(startIndex, endIndex).contains("http") ){
+                    it++
+                    continue
+                }
+                print( "- " )
+                print( handleText(startIndex, endIndex) )
+                print( " (" )
+                print( handleHref(startIndex, endIndex) )
+                println( ")" )
+            }
+        }
+
+        it++
+    }
+}
+
+fun handleText(startIndex: Int, endIndex: Int): String {
+    var it = startIndex
+    var contentStartIndex = -1
+    var contentEndIndex = -1
+    while (it < endIndex) {
+        if( responseBody.get( it ).equals( '>' ) && (it != endIndex - 1) ) {
+            contentStartIndex = it + 1
+            var it1 = contentStartIndex
+            while( it1 < endIndex ) {
+                if( responseBody.substring( it1, it1 + 4 ).equals("</a>", true) ){
+                    contentEndIndex = it1
+                    break
+                }
+                it1++
+            }
+            /* this break is, if u shouldn't include a raw text inside the anchor tag, such icon or <i>*/
+            break
+        }
+        it++
+    }
+    if ( contentStartIndex == -1 || contentEndIndex == -1 || (contentStartIndex >= contentEndIndex) ) return ""
+    return responseBody.substring( contentStartIndex, contentEndIndex ).replace("\t", "").replace("\n", " ").replace("  ", " ")
+}
+
+fun handleHref(startIndex: Int, endIndex: Int): String {
+    var it = startIndex
+    var linkStartIndex = -1
+    var linkEndIndex = -1
+    while (it < endIndex) {
+        if( responseBody.substring( it, it + 6).equals("href=\"", true) ) {
+            linkStartIndex = it + 6
+            var it1 = linkStartIndex
+            while( it1 < endIndex ) {
+                if( responseBody.get( it1 ).equals('\"', true) ){
+                    linkEndIndex = it1
+                    break
+                }
+                it1++
+            }
+        }
+        it++
+    }
+    if ( linkStartIndex == -1 || linkEndIndex == -1 || (linkStartIndex >= linkEndIndex) ) return ""
+    return responseBody.substring( linkStartIndex, linkEndIndex ).replace(" ", "")
+}
 /** DO NOT DELETE **/
 /** Code snippets for creating corouting **/
 //fun main(args: Array<String>) = runBlocking {

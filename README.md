@@ -4,7 +4,11 @@
 TODO
 - open a web page given an URI and show text
 - show clickable links
-- download file
+- download file regardless its size
+- download file in parallel
+- follow redirection
+- show respective HTTP error messages
+- Open a web page that is protected by HTTP basic auth
 
 # example http response's header
 ### 200 OK
