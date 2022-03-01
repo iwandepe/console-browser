@@ -45,9 +45,12 @@ fun main() {
 
 fun startApp() {
     while (true) {
-        print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
-        var input = readLine()
+//        print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
+//        var input = readLine()
 
+//        print("Masukkan url: ")
+//        var input = readLine()
+        var input = "http://classroom.its.ac.id"
         url = input!!
 
         if (!url.startsWith("http")) {
@@ -60,6 +63,12 @@ fun startApp() {
         executeThread()
 
         checkStatusCode()
+
+        if( responseHeader.containsKey("Status-Code") ) {
+            println(" (${ responseHeader.get("Status-Code") })")
+        } else {
+            println("\nSorry, we can't even get a RESPONSE HEADER")
+        }
 
         /* handle redirectionS */
         var it = 0
@@ -180,11 +189,12 @@ internal class MakeHttpRequest : Callable<Boolean> {
             val br = BufferedReader(InputStreamReader(bis, StandardCharsets.UTF_8))
             var bos = BufferedOutputStream(socket.getOutputStream())
 
-            if (path.equals("\\")) path = ""
-
             var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
-//            println(TEXT_YELLOW + "Full request = " + request + TEXT_RESET)
 
+            if ( path.equals("") ) {
+                path = "/"
+                request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
+            }
             bos.write( request.toByteArray() )
             bos.flush()
 
@@ -220,6 +230,10 @@ internal class MakeHttpsRequest : Callable<Boolean> {
             var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
 //            println(TEXT_YELLOW + "Full request = " + request + TEXT_RESET)
 
+//            if (path.equals("/") || path.equals("")) {
+//                path = ""
+//                request = "GET $HTTP_VERSION\r\nHost: $host\r\n\r\n"
+//            }=
             out.println( request )
             out.println()
             out.flush()
@@ -426,7 +440,7 @@ fun handleText(startIndex: Int, endIndex: Int): String {
         it++
     }
     if ( contentStartIndex == -1 || contentEndIndex == -1 || (contentStartIndex >= contentEndIndex) ) return ""
-    return responseBody.substring( contentStartIndex, contentEndIndex ).replace("\t", "").replace("\n", " ").replace("  ", " ")
+    return responseBody.substring( contentStartIndex, contentEndIndex ).replace("\t", "").replace("\n", " ").replace(" ", "")
 }
 
 fun handleHref(startIndex: Int, endIndex: Int): String {
@@ -448,7 +462,7 @@ fun handleHref(startIndex: Int, endIndex: Int): String {
         it++
     }
     if ( linkStartIndex == -1 || linkEndIndex == -1 || (linkStartIndex >= linkEndIndex) ) return ""
-    return responseBody.substring( linkStartIndex, linkEndIndex ).replace(" ", "")
+    return responseBody.substring( linkStartIndex, linkEndIndex ).replace(" ", "").replace("\n", "")
 }
 /** DO NOT DELETE **/
 /** Code snippets for creating corouting **/
