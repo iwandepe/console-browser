@@ -141,7 +141,18 @@ fun startApp() {
 
 fun checkStatusCode() {
     if( responseHeader.containsKey("Status-Code") ) {
-        println(TEXT_YELLOW + "Status Code = " + responseHeader.get("Status-Code") + TEXT_RESET)
+        if (responseHeader.get("Status-Code")!!.startsWith("2")) {
+            println(TEXT_YELLOW + "Request success" + TEXT_RESET)
+        }
+        else if (responseHeader.get("Status-Code")!!.startsWith("3")) {
+            println(TEXT_YELLOW + "Request redirected" + TEXT_RESET)
+        }
+        else if (responseHeader.get("Status-Code")!!.startsWith("4")) {
+            println(TEXT_YELLOW + "Client error" + TEXT_RESET)
+        }
+        else if (responseHeader.get("Status-Code")!!.startsWith("5")) {
+            println(TEXT_YELLOW + "Server error" + TEXT_RESET)
+        }
     } else {
         println(TEXT_RED + "Sorry, we can't even get a RESPONSE HEADER. Check again your url!" + TEXT_RESET)
     }
