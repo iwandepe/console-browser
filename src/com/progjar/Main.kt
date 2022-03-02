@@ -25,6 +25,7 @@ var responseBody: String = ""
 var webTitle: String = ""
 
 var url = "localhost"
+var access_token = ""
 
 fun main() {
     startApp()
@@ -45,12 +46,14 @@ fun main() {
 
 fun startApp() {
     while (true) {
-//        print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
-//        var input = readLine()
+        responseBody = ""
+        responseHeader.clear()
+        print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
+        var input = readLine()
 
 //        print("Masukkan url: ")
 //        var input = readLine()
-        var input = "http://classroom.its.ac.id"
+//        var input = "http://127.0.0.1/api/user/login/"
         url = input!!
 
         if (!url.startsWith("http")) {
@@ -59,10 +62,25 @@ fun startApp() {
 
         println(TEXT_GREEN + "You're accessing $url" + TEXT_RESET)
 
-        // try to connect
-        executeThread()
+        print(TEXT_GREEN + "Enter METHOD: " + TEXT_RESET)
+        var httpMethod = readLine()
 
-        checkStatusCode()
+        // try to connect
+        if ( httpMethod. equals("post", true) ) {
+            val executor = Executors.newSingleThreadExecutor()
+            val future = executor.submit( MakeHttpPostRequest() )
+
+            try {
+                future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
+            } catch (e: TimeoutException) {
+                future.cancel(true)
+            }
+        } else if ( httpMethod. equals("get", true) ) {
+            executeThread()
+        }
+
+
+//        checkStatusCode()
 
         if( responseHeader.containsKey("Status-Code") ) {
             println(" (${ responseHeader.get("Status-Code") })")
@@ -83,7 +101,7 @@ fun startApp() {
             // try to connect
             executeThread()
 
-            checkStatusCode()
+//            checkStatusCode()
 
             it++
             if (it >= REDIRECTION_LIMIT) {
@@ -115,6 +133,8 @@ fun startApp() {
         if ( responseBody.length != 0 ){
             getWebTitle()
             getLink()
+            println( responseBody )
+//            getAccessToken()
         }
 
         println()
@@ -143,7 +163,7 @@ fun executeThread() {
         }
     } else {
         val executor = Executors.newSingleThreadExecutor()
-        val future = executor.submit(MakeHttpRequest())
+        val future = executor.submit( MakeHttpRequest() )
 
         try {
             future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
@@ -195,6 +215,10 @@ internal class MakeHttpRequest : Callable<Boolean> {
                 path = "/"
                 request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
             }
+            if ( url.contains( "api", true ) ) {
+                request = "GET $path $HTTP_VERSION\r\nHost: $host\r\nAuthorization: Bearer $access_token\r\n\r\n"
+            }
+//            println( request )
             bos.write( request.toByteArray() )
             bos.flush()
 
@@ -258,6 +282,77 @@ internal class MakeHttpsRequest : Callable<Boolean> {
     }
 }
 
+internal class MakeHttpPostRequest : Callable<Boolean> {
+    @Throws(java.lang.Exception::class)
+    override fun call(): Boolean {
+        try {
+            val urlMap = parseUrl(url)
+            val host = urlMap.get("host")
+            var path = urlMap.get("path")
+
+            var socket: Socket = Socket(host, 80)
+
+            var bis = BufferedInputStream(socket.getInputStream())
+            val br = BufferedReader(InputStreamReader(bis, StandardCharsets.UTF_8))
+            var bos = BufferedOutputStream(socket.getOutputStream())
+
+            var cookie =
+                "Cookie: XSRF-TOKEN=eyJpdiI6IndvNWl3Zk0xRW4wc3VUMUVtYzNBaXc9PSIsInZhbHVlIjoiVHFNVkVpUmxYZFp0K2Y2Nkt4MFdGcFUxMjVpdk5wVWQ5Z3dJeTRocHFkVlk5VzBrYmtIcUE2ekt6dFB2RVRtZm8wc0thY1EyVFRNY1RKTjlFaWQrc2xuQ1J3TUlqKzBYRGk5WnEySXBxbFZVcURLSU1pYXFSOTFESjhNL3BFSDMiLCJtYWMiOiJmYTgyYTFjYmI2ZDI0NDI5YmQ1MTc3ZTQ3ZmI3MWE1OTA5ZGFiMjRlODYzNjBlOTBmMGY4ZjExZjgyMzQwZjUwIiwidGFnIjoiIn0%3D; " +
+                "laravel_session=eyJpdiI6IkdYRFlkZ2ZycXZqYXZhck03dzBtMEE9PSIsInZhbHVlIjoidVNzL054RzJMOE5VNldEWTdYUXZncmdPMGl6dG9Ra0ZuZ3pJKzlEQmFYenk4b09SQ01nQXdKWWhyK3h0a2JTMXFFa3hCelY3eURrMGRGaTI2bGJuSERYY1J2NzlBRGV2TVhQMkxCQkNJcmxmYUxzLzNJYi9JUzlIQnlGd3lQQmsiLCJtYWMiOiJiNjA2NmMzMWUzYTBjYmQ5ZmUwYjVkMDhkOTM0MjFkY2Q3ZjZhN2JkODM1NWE3NjdlNDkwZGQyM2E2OGMzM2VlIiwidGFnIjoiIn0%3D"
+
+            var _token = "k5zJYMGZh7RLVJc0yhdAqYmdW1lZofia5jX9iLDL"
+            var email = "ei@gmail.com"
+            var password = "password"
+
+//            print(TEXT_GREEN + "Enter email: " + TEXT_RESET)
+//            var email = readLine()
+//            print(TEXT_RED + "Enter password: " + TEXT_RESET)
+//            var password = readLine()
+
+
+            if ( path.equals("") ) {
+                path = "/"
+            }
+//            var request = "POST $path $HTTP_VERSION\r\nHost: $host\r\n$cookie\r\nContent-Type: application/x-www-form-urlencoded\r\n_token: $_token\r\nemail: ei@gmail.com\r\npassword: password\r\n\r\n"
+            var request = "POST $path $HTTP_VERSION\r\n" +
+                    "Host: $host\r\n" +
+//                    "Connection: keep-alive\r\n" +
+                    "Content-Length: ${ ("email=$email" + "&" + "password=$password").length }\r\n" +
+//                    "Cache-Control: max-age=0\r\n" +
+//                    "Origin: http://instapp-ets.herokuapp.com\r\n" +
+//                    "Upgrade-Insecure-Requests: 1\r\n" +
+//                    "DNT: 1\r\n" +
+                    "Content-Type: application/x-www-form-urlencoded\r\n" +
+//                    "Accept: */*\r\n" +
+//                    "Referer: http://instapp-ets.herokuapp.com/login\r\n" +
+//                    "Accept-Language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7\r\n" +
+//                    cookie +
+                    "\r\n" +
+
+//                    "_token=$_token" + "&" +
+                    "email=$email" + "&" +
+                    "password=$password" +
+                    "\r\n"
+
+//            println( request )
+            bos.write( request.toByteArray() )
+            bos.flush()
+
+            readBufferedReader(br)
+
+            bis.close()
+            bos.close()
+            socket.close()
+
+            return true
+        } catch (e: Exception) {
+            // e.printStackTrace()
+
+            return false
+        }
+    }
+}
+
 internal class MakeHttpsPostRequest : Callable<Boolean> {
     @Throws(java.lang.Exception::class)
     override fun call(): Boolean {
@@ -272,7 +367,7 @@ internal class MakeHttpsPostRequest : Callable<Boolean> {
             socket.startHandshake()
             val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
 
-            out.println("POST $path $HTTP_VERSION\r\nHost: $host\r\n\r\nemail=05111940000053&password=password\r\n\r\n")
+            out.println("POST $path $HTTP_VERSION\r\nHost: $host\r\n\r\nemail=ei@gmail.com&password=password&_token=bxKyOQUKFXU5K3kBUSF6hbxlXBpH1ctg59pvEezM\r\n")
             out.println()
             out.flush()
 
@@ -320,6 +415,12 @@ fun readBufferedReader(br: BufferedReader) {
         }
 //        println( line )
         line = br.readLine()
+    }
+//    println( responseHeader )
+    println( responseBody )
+    if ( responseHeader.containsKey("Content-Type") && responseHeader.get("Content-Type")!!.contains("application/json") ||
+        responseHeader.containsKey("content-type") && responseHeader.get("content-type")!!.contains("application/json") ) {
+        getAccessToken()
     }
 }
 
@@ -463,6 +564,32 @@ fun handleHref(startIndex: Int, endIndex: Int): String {
     }
     if ( linkStartIndex == -1 || linkEndIndex == -1 || (linkStartIndex >= linkEndIndex) ) return ""
     return responseBody.substring( linkStartIndex, linkEndIndex ).replace(" ", "").replace("\n", "")
+}
+
+fun getAccessToken() {
+    var it = 0
+    var startIndex = -1
+    var endIndex = -1
+    while ( it < responseBody.length ) {
+        if ( responseBody.substring(it, it + "\"access_token\":\"".length ).equals( "\"access_token\":\"") ) {
+            it += "\"access_token\":\"".length
+            startIndex = it
+
+            while ( it < responseBody.length ) {
+                if ( responseBody.get( it ).equals('\"') ) {
+
+                    endIndex = it
+                    it++
+                    break
+                }
+                it++
+            }
+        }
+        it++
+    }
+    if ( startIndex == -1 || endIndex == -1 || (startIndex >= endIndex) ) access_token = ""
+    access_token = responseBody.substring( startIndex, endIndex )
+//    println( access_token )
 }
 /** DO NOT DELETE **/
 /** Code snippets for creating corouting **/
