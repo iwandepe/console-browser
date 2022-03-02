@@ -2,13 +2,36 @@
  progjar exercise 1
 
 TODO
-- open a web page given an URI and show text
-- show clickable links
-- download file regardless its size
-- download file in parallel
-- follow redirection
-- show respective HTTP error messages
-- Open a web page that is protected by HTTP basic auth
+1. open a web page given an URI and show text
+2. show clickable links
+3. download file regardless its size
+4. download file in parallel
+5. follow redirection
+6. show respective HTTP error messages
+7. Open a web page that is protected by HTTP basic auth
+
+
+1. just give it a link and input 'get'
+2. automatically show the clickable links
+3. auto download
+4. auto download
+5. auto redirect if it is being redirected
+6. always show the respective response code
+7. for example
+```
+Enter url: http://127.0.0.1/api/user/login/
+You're accessing http://127.0.0.1/api/user/login/
+Enter METHOD: post
+Enter email: ei@gmail.com
+Enter password: password
+
+{"user":{"id":4,"name":"ei-chan","email":"ei@gmail.com","email_verified_at":null,"bio":"bio","mobile":"082141414361","city":"inazuma","created_at":"2021-10-28T13:19:10.000000Z","updated_at":"2021-12-08T10:45:32.000000Z","avatar":"avatar-4.png"},"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIzIiwianRpIjoiNDBkNGZkMDMyNjg2ZTBlMDA3NWIyNGIwMTZhZDY0MTM5ODkxN2RiOWJmNDJhN2Q0OWNkODBmNmZkOTE1N2U5ZjY0ODUxMTYzMmUxZThkYTciLCJpYXQiOjE2NDYxOTM2NTAuMzkzODk0LCJuYmYiOjE2NDYxOTM2NTAuMzkzOTA5LCJleHAiOjE2Nzc3Mjk2NTAuMzc0MDE1LCJzdWIiOiI0Iiwic2NvcGVzIjpbXX0.lQFi4vs7j3h-CN6fpLtL1k2JqqenNJg5cEXh7oRjInpZKMpi4-H438SezFIQbj75ZJXFsFCOFytmgxUZkEFGUXy77P-5KY133dg-J_6ieg0yw3HM5w0QsxD1TKxEBYSLUd2wOTpAo_CvoV8LkbEIde0bXlHr3aBjJpYGnnZ3fORD0B1HfBgM0esW2VrsLpuaMGSAtgHX_YEEztLddluoY8iw3JjmwxvrkJitSkLFSUA2YSrpvbsSVxCkYsl4xf4Osiw7v2ZVRZAmxmFpCUUqBTVi2fc2w17h-4iWRLgN4MOM6BAsREXOeQJTv6an3oc_muPZdHd-gscoUnPNFARsJucPk54LNLPtwm0h6xm39uHVxl-2pFarTSWZXzTHwcNezDSnGOmLMeOLRT5Yvjl-q3W0UaWklyc6BbhSYDa3s7HMMyVaC-vEYsofvj9htogF96d5TE_PnICm79Eh41axeLJpN0VUp0B5LVzCAhbbzJ5rnXUTV_J_TaFDLbWqlEWoRTIMltl7kxBEkroAKgD83XDpX1BpeaTHUElZFT7VZY4QvKzQX9WmgbpgmUpmdwzcWTbBDShlc2lDSm_sb5mXDthLGGtgZvmtTUbYnCdzUWoNw-cAcE6RgUKtLBk_ib2R8pooVQTcsIGGwssr5eCtR_oWo7L05jtSJdtprL2pUoc"}
+ (200 OK)
+Program is downloading the file in the background
+
+=======================================================
+Enter url: 
+```
 
 # example http response's header
 ### 200 OK

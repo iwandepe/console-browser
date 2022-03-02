@@ -26,6 +26,8 @@ var webTitle: String = ""
 
 var url = "localhost"
 var access_token = ""
+var email: String? = ""
+var password: String? = ""
 
 fun main() {
     startApp()
@@ -67,13 +69,19 @@ fun startApp() {
 
         // try to connect
         if ( httpMethod. equals("post", true) ) {
+
+            print(TEXT_GREEN + "Enter email: " + TEXT_RESET)
+            email = readLine()
+            print(TEXT_RED + "Enter password: " + TEXT_RESET)
+            password = readLine()
+
             val executor = Executors.newSingleThreadExecutor()
             val future = executor.submit( MakeHttpPostRequest() )
 
             try {
                 future[REQUEST_TIMEOUT, TimeUnit.SECONDS]
             } catch (e: TimeoutException) {
-                future.cancel(true)
+                future.cancel(false)
             }
         } else if ( httpMethod. equals("get", true) ) {
             executeThread()
@@ -301,13 +309,9 @@ internal class MakeHttpPostRequest : Callable<Boolean> {
                 "laravel_session=eyJpdiI6IkdYRFlkZ2ZycXZqYXZhck03dzBtMEE9PSIsInZhbHVlIjoidVNzL054RzJMOE5VNldEWTdYUXZncmdPMGl6dG9Ra0ZuZ3pJKzlEQmFYenk4b09SQ01nQXdKWWhyK3h0a2JTMXFFa3hCelY3eURrMGRGaTI2bGJuSERYY1J2NzlBRGV2TVhQMkxCQkNJcmxmYUxzLzNJYi9JUzlIQnlGd3lQQmsiLCJtYWMiOiJiNjA2NmMzMWUzYTBjYmQ5ZmUwYjVkMDhkOTM0MjFkY2Q3ZjZhN2JkODM1NWE3NjdlNDkwZGQyM2E2OGMzM2VlIiwidGFnIjoiIn0%3D"
 
             var _token = "k5zJYMGZh7RLVJc0yhdAqYmdW1lZofia5jX9iLDL"
-            var email = "ei@gmail.com"
-            var password = "password"
+//            var email = "ei@gmail.com"
+//            var password = "password"
 
-//            print(TEXT_GREEN + "Enter email: " + TEXT_RESET)
-//            var email = readLine()
-//            print(TEXT_RED + "Enter password: " + TEXT_RESET)
-//            var password = readLine()
 
 
             if ( path.equals("") ) {
