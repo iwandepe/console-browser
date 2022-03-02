@@ -109,12 +109,6 @@ fun startApp() {
             }
         }
 
-        /**
-         * Sometimes Http response for file request is correct
-         * the Content-Type is other than text/html. Ex. "image/jpeg"
-         *
-         * But sometimes it returns Content-Type text/html and the Status-Code is 4xx
-         */
         if ( responseHeader.containsKey("Content-Type") && !responseHeader.get("Content-Type")!!.contains("html") ||
             responseHeader.containsKey("content-type") && !responseHeader.get("content-type")!!.contains("html")) {
             GlobalScope.launch {
