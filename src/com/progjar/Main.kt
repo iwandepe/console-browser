@@ -53,9 +53,6 @@ fun startApp() {
         print(TEXT_GREEN + "Enter url: " + TEXT_RESET)
         var input = readLine()
 
-//        print("Masukkan url: ")
-//        var input = readLine()
-//        var input = "http://127.0.0.1/api/user/login/"
         url = input!!
 
         if (!url.startsWith("http")) {
@@ -88,13 +85,7 @@ fun startApp() {
         }
 
 
-//        checkStatusCode()
-
-        if( responseHeader.containsKey("Status-Code") ) {
-            println(" (${ responseHeader.get("Status-Code") })")
-        } else {
-            println("\nSorry, we can't even get a RESPONSE HEADER")
-        }
+        checkStatusCode()
 
         /* handle redirectionS */
         var it = 0
@@ -109,7 +100,7 @@ fun startApp() {
             // try to connect
             executeThread()
 
-//            checkStatusCode()
+            checkStatusCode()
 
             it++
             if (it >= REDIRECTION_LIMIT) {
@@ -117,8 +108,6 @@ fun startApp() {
                 break
             }
         }
-
-        // println(responseHeader)
 
         /**
          * Sometimes Http response for file request is correct
@@ -142,7 +131,6 @@ fun startApp() {
             getWebTitle()
             getLink()
             println( responseBody )
-//            getAccessToken()
         }
 
         println()
@@ -187,7 +175,7 @@ fun downloadFile() {
         val bis = BufferedInputStream(urlObject.openStream())
         val urlMap = parseUrl(url)
         val path = urlMap.get("path")
-        val pathTo = DOWNLOAD_PATH + path!!.substring(path.lastIndexOf("/") + 1)
+        val pathTo = DOWNLOAD_PATH + "/" + path!!.substring(path.lastIndexOf("/") + 1)
         val fis = FileOutputStream(pathTo)
 
         val buffer = ByteArray(1024)
@@ -226,7 +214,6 @@ internal class MakeHttpRequest : Callable<Boolean> {
             if ( url.contains( "api", true ) ) {
                 request = "GET $path $HTTP_VERSION\r\nHost: $host\r\nAuthorization: Bearer $access_token\r\n\r\n"
             }
-//            println( request )
             bos.write( request.toByteArray() )
             bos.flush()
 
@@ -260,12 +247,7 @@ internal class MakeHttpsRequest : Callable<Boolean> {
             val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket.outputStream)))
 
             var request = "GET $path $HTTP_VERSION\r\nHost: $host\r\n\r\n"
-//            println(TEXT_YELLOW + "Full request = " + request + TEXT_RESET)
 
-//            if (path.equals("/") || path.equals("")) {
-//                path = ""
-//                request = "GET $HTTP_VERSION\r\nHost: $host\r\n\r\n"
-//            }=
             out.println( request )
             out.println()
             out.flush()
@@ -309,8 +291,6 @@ internal class MakeHttpPostRequest : Callable<Boolean> {
                 "laravel_session=eyJpdiI6IkdYRFlkZ2ZycXZqYXZhck03dzBtMEE9PSIsInZhbHVlIjoidVNzL054RzJMOE5VNldEWTdYUXZncmdPMGl6dG9Ra0ZuZ3pJKzlEQmFYenk4b09SQ01nQXdKWWhyK3h0a2JTMXFFa3hCelY3eURrMGRGaTI2bGJuSERYY1J2NzlBRGV2TVhQMkxCQkNJcmxmYUxzLzNJYi9JUzlIQnlGd3lQQmsiLCJtYWMiOiJiNjA2NmMzMWUzYTBjYmQ5ZmUwYjVkMDhkOTM0MjFkY2Q3ZjZhN2JkODM1NWE3NjdlNDkwZGQyM2E2OGMzM2VlIiwidGFnIjoiIn0%3D"
 
             var _token = "k5zJYMGZh7RLVJc0yhdAqYmdW1lZofia5jX9iLDL"
-//            var email = "ei@gmail.com"
-//            var password = "password"
 
 
 
@@ -320,25 +300,14 @@ internal class MakeHttpPostRequest : Callable<Boolean> {
 //            var request = "POST $path $HTTP_VERSION\r\nHost: $host\r\n$cookie\r\nContent-Type: application/x-www-form-urlencoded\r\n_token: $_token\r\nemail: ei@gmail.com\r\npassword: password\r\n\r\n"
             var request = "POST $path $HTTP_VERSION\r\n" +
                     "Host: $host\r\n" +
-//                    "Connection: keep-alive\r\n" +
                     "Content-Length: ${ ("email=$email" + "&" + "password=$password").length }\r\n" +
-//                    "Cache-Control: max-age=0\r\n" +
-//                    "Origin: http://instapp-ets.herokuapp.com\r\n" +
-//                    "Upgrade-Insecure-Requests: 1\r\n" +
-//                    "DNT: 1\r\n" +
                     "Content-Type: application/x-www-form-urlencoded\r\n" +
-//                    "Accept: */*\r\n" +
-//                    "Referer: http://instapp-ets.herokuapp.com/login\r\n" +
-//                    "Accept-Language: id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7\r\n" +
-//                    cookie +
                     "\r\n" +
 
-//                    "_token=$_token" + "&" +
                     "email=$email" + "&" +
                     "password=$password" +
                     "\r\n"
 
-//            println( request )
             bos.write( request.toByteArray() )
             bos.flush()
 
@@ -351,7 +320,6 @@ internal class MakeHttpPostRequest : Callable<Boolean> {
             return true
         } catch (e: Exception) {
             // e.printStackTrace()
-
             return false
         }
     }
@@ -417,11 +385,8 @@ fun readBufferedReader(br: BufferedReader) {
         else {
             responseBody = responseBody + "\n" + line
         }
-//        println( line )
         line = br.readLine()
     }
-//    println( responseHeader )
-    println( responseBody )
     if ( responseHeader.containsKey("Content-Type") && responseHeader.get("Content-Type")!!.contains("application/json") ||
         responseHeader.containsKey("content-type") && responseHeader.get("content-type")!!.contains("application/json") ) {
         getAccessToken()
@@ -540,7 +505,6 @@ fun handleText(startIndex: Int, endIndex: Int): String {
                 it1++
             }
             /* this break is, if u shouldn't include a raw text inside the anchor tag, such icon or <i>*/
-//            break
         }
         it++
     }
@@ -595,30 +559,7 @@ fun getAccessToken() {
     access_token = responseBody.substring( startIndex, endIndex )
 //    println( access_token )
 }
-/** DO NOT DELETE **/
-/** Code snippets for creating corouting **/
-//fun main(args: Array<String>) = runBlocking {
-//
-//    val job = GlobalScope.launch(Dispatchers.IO) {
-//        makeHttpRequest(host)
-//    }
-//
-//    while (true) {
-//        print("Masukkan host: ")
-//        host = readLine()!!
-//        print("Kamu mengakses host $host")
-//
-//        try {
-//            withTimeout(1000) {
-//                job.join()
-//            }
-//        } catch (ex: TimeoutCancellationException) {
-//            println(responseBody)
-//        }
-//    }
-//}
 
-/** Code snippets for colorfull print to console **/
 const val TEXT_RESET = "\u001B[0m"
 const val TEXT_BLACK = "\u001B[30m"
 const val TEXT_RED = "\u001B[31m"
@@ -628,8 +569,3 @@ const val TEXT_BLUE = "\u001B[34m"
 const val TEXT_PURPLE = "\u001B[35m"
 const val TEXT_CYAN = "\u001B[36m"
 const val TEXT_WHITE = "\u001B[37m"
-//
-//println("Hello, World!")
-//println("<a href=\"www.google.com\">Google</a>")
-//println("Google(https://www.google.com)")
-//println(TEXT_RED + "This text is red!" + TEXT_RESET)
